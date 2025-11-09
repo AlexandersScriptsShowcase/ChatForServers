@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chat</title>
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="{{ url_for('favicon') }}">
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    #messages {
+      height: 300px;
+      overflow: auto;
+      border: 1px solid #000;
+      padding: 5px;
+      background: #f9f9f9;
+      font-family: Arial, sans-serif;
+    }
+    .message { margin-bottom: 5px; }
+    .username { font-weight: bold; }
+    .timestamp { color: gray; font-size: 0.8em; margin-left: 5px; }
+    .notice { color: red; font-style: italic; cursor: pointer; margin-bottom: 5px; }
+    #rulesOverlay {
+      position:fixed; top:0; left:0; width:100%; height:100%;
+      background:rgba(0,0,0,0.8); color:white; display:flex;
+      flex-direction:column; justify-content:center; align-items:center; z-index:1000;
+    }
+    #rulesOverlay div { background:#333; padding:20px; border-radius:10px; width:400px; text-align:center; }
+  </style>
+</head>
+<body>
+  <!-- Rules Overlay -->
+  <div id="rulesOverlay">
+    <div>
+      <h2>Chat Rules</h2>
+      <ul style="text-align:left;">
+        <li>No spamming</li>
+        <li>No sending inappropriate things</li>
+        <li>No being offensive</li>
+        <li>This is the server version, which means some rules were left for user enjoyment.</li>
+      </ul>
+      <label>
+        <input type="checkbox" id="acceptRules"> I have read and accept the rules
+      </label>
+      <br><br>
+      <button id="enterChat" disabled>Enter Chat</button>
+      <button id="closeRules">Close</button>
+    </div>
+  </div>
+
+  <h2>Welcome, {{ username }}</h2>
+
+  {% if username == "IAmAlexAndStuff" %}
+    <button onclick="clearChat()">Clear Chat</button>
+  {% endif %}
+
+  <div id="messages">
+    {% for msg in messages %}
+      <div class="message" id="msg-{{ msg.id }}">
+        <span class="username">{{ msg.username }}</span>:
+        <span class="content">{{ msg.content }}</span>
+        <span class="timestamp">[{{ msg.timestamp.strftime("%H:%M:%S") }}]</span>
+        {% if username == "aq" %}
+          <select id="reason-{{ msg.id }}">
+            <option value="offensive">Offensive</option>
+            <option value="spam">Spam</option>
+            <option value="irrelevant">Irrelevant</option>
+          </select>
+          <button onclick="removeMessage({{ msg.id }})">Remove</button>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+
+  <input id="msg" placeholder="Message">
+  <button onclick="sendMessage()">Send</button>
+
+  <script>
+    const socket = io();
+
+    // Rules overlay logic
+    const acceptRules = document.getElementById("acceptRules");
+    const enterChat = document.getElementById("enterChat");
+    const rulesOverlay = document.getElementById("rulesOverlay");
+    const closeRules = document.getElementById("closeRules");
+
+    acceptRules.addEventListener("change", () => {
+      enterChat.disabled = !acceptRules.checked;
+    });
+
+    enterChat.addEventListener("click", () => {
+      rulesOverlay.style.display = "none";
+    });
+
+    closeRules.addEventListener("click", () => {
+      rulesOverlay.style.display = "none";
+    });
+
+    // Message functions
+    function sendMessage() {
+      const input = document.getElementById("msg");
+      const msg = input.value.trim();
+      if(msg === "") return;
+      socket.emit("send_message", {user: "{{ username }}", message: msg});
+      input.value = "";
+    }
+
+    function clearChat() {
+      fetch("/clear_chat", { method: "POST" })
+        .then(res => res.json())
+        .then(data => {
+          if(data.status !== "success") alert(data.message);
+        });
+    }
+
+    function removeMessage(msgId) {
+      const reason = document.getElementById(`reason-${msgId}`).value;
+      fetch("/remove_message", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({id: msgId, reason: reason})
+      });
+    }
+
+    socket.on("receive_message", data => {
+      const div = document.getElementById("messages");
+      const msgDiv = document.createElement("div");
+      msgDiv.classList.add("message");
+      msgDiv.id = `msg-${data.id}`;
+      msgDiv.innerHTML = `<span class="username">${data.user}</span>: <span class="content">${data.message}</span> <span class="timestamp">[${new Date().toLocaleTimeString()}]</span>`;
+
+      {% if username == "aq" %}
+      const select = document.createElement("select");
+      select.id = `reason-${data.id}`;
+      ["offensive","spam","irrelevant"].forEach(r => {
+          const option = document.createElement("option");
+          option.value = r;
+          option.text = r.charAt(0).toUpperCase() + r.slice(1);
+          select.appendChild(option);
+      });
+      const btn = document.createElement("button");
+      btn.textContent = "Remove";
+      btn.onclick = () => removeMessage(data.id);
+      msgDiv.appendChild(select);
+      msgDiv.appendChild(btn);
+      {% endif %}
+
+      div.appendChild(msgDiv);
+      div.scrollTop = div.scrollHeight;
+    });
+
+    socket.on("chat_cleared", () => {
+      document.getElementById("messages").innerHTML = "";
+    });
+
+    socket.on("message_removed", data => {
+      const msgDiv = document.getElementById(`msg-${data.id}`);
+      if(msgDiv) msgDiv.remove();
+
+      const notice = document.createElement("div");
+      notice.classList.add("notice");
+      notice.innerHTML = `<i>${data.user}'s text removed for being ${data.reason}</i>`;
+      document.getElementById("messages").appendChild(notice);
+
+      notice.addEventListener("click", () => notice.remove());
+      setTimeout(() => notice.remove(), 10000);
+    });
+  </script>
+</body>
+</html>
