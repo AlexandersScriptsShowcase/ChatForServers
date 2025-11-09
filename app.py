@@ -13,7 +13,9 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///cha
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
-socketio = SocketIO(app, async_mode='eventlet')
+
+# Use gevent async mode instead of eventlet
+socketio = SocketIO(app, async_mode='gevent')
 
 # Models
 class User(db.Model):
