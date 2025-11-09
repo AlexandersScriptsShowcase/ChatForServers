@@ -14,7 +14,7 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 
-# Use gevent async mode instead of eventlet
+# Use gevent async mode instead of eventlet (compatible with Python 3.13+)
 socketio = SocketIO(app, async_mode='gevent')
 
 # Models
