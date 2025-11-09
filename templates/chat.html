@@ -74,7 +74,7 @@
   <button onclick="sendMessage()">Send</button>
 
   <script>
-    // Force websocket transport to avoid polling fallback issues
+    // Use websocket transport to avoid polling fallback issues
     const socket = io({ transports: ['websocket'] });
 
     // Rules overlay logic
@@ -95,16 +95,16 @@
       rulesOverlay.style.display = "none";
     });
 
-    // Message functions
+    // Send message function
     function sendMessage() {
       const input = document.getElementById("msg");
       const msg = input.value.trim();
       if(msg === "") return;
-      console.log("Sending message:", msg);
       socket.emit("send_message", {user: "{{ username }}", message: msg});
       input.value = "";
     }
 
+    // Clear chat (admin only)
     function clearChat() {
       fetch("/clear_chat", { method: "POST" })
         .then(res => res.json())
@@ -113,6 +113,7 @@
         });
     }
 
+    // Remove message (admin only)
     function removeMessage(msgId) {
       const reason = document.getElementById(`reason-${msgId}`).value;
       fetch("/remove_message", {
@@ -122,6 +123,7 @@
       });
     }
 
+    // Receive message event
     socket.on("receive_message", data => {
       const div = document.getElementById("messages");
       const msgDiv = document.createElement("div");
@@ -149,10 +151,12 @@
       div.scrollTop = div.scrollHeight;
     });
 
+    // Chat cleared event
     socket.on("chat_cleared", () => {
       document.getElementById("messages").innerHTML = "";
     });
 
+    // Message removed event
     socket.on("message_removed", data => {
       const msgDiv = document.getElementById(`msg-${data.id}`);
       if(msgDiv) msgDiv.remove();
