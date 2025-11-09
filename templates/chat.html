@@ -19,11 +19,11 @@
     .timestamp { color: gray; font-size: 0.8em; margin-left: 5px; }
     .notice { color: red; font-style: italic; cursor: pointer; margin-bottom: 5px; }
     #rulesOverlay {
-      position:fixed; top:0; left:0; width:100%; height:100%;
-      background:rgba(0,0,0,0.8); color:white; display:flex;
-      flex-direction:column; justify-content:center; align-items:center; z-index:1000;
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8); color: white; display: flex;
+      flex-direction: column; justify-content: center; align-items: center; z-index: 1000;
     }
-    #rulesOverlay div { background:#333; padding:20px; border-radius:10px; width:400px; text-align:center; }
+    #rulesOverlay div { background: #333; padding: 20px; border-radius: 10px; width: 400px; text-align: center; }
   </style>
 </head>
 <body>
@@ -70,11 +70,12 @@
     {% endfor %}
   </div>
 
-  <input id="msg" placeholder="Message">
+  <input id="msg" placeholder="Message" autocomplete="off" autofocus>
   <button onclick="sendMessage()">Send</button>
 
   <script>
-    const socket = io();
+    // Force websocket transport to avoid polling fallback issues
+    const socket = io({ transports: ['websocket'] });
 
     // Rules overlay logic
     const acceptRules = document.getElementById("acceptRules");
@@ -99,6 +100,7 @@
       const input = document.getElementById("msg");
       const msg = input.value.trim();
       if(msg === "") return;
+      console.log("Sending message:", msg);
       socket.emit("send_message", {user: "{{ username }}", message: msg});
       input.value = "";
     }
