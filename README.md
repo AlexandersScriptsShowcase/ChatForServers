@@ -10,6 +10,6 @@
 # Setup
 
 Install dependencies from requirements.txt
-
+If you want a site icon, make a siteicon.ico file, and it'll automatically detect and use it as site logo.
 run `python http.server 5000`, after that `python app.py`.
 **If on linux, please run source ~/Where/ChatForServers/IsLocated/venv/bin/activate before python app.py and installing dependencies and running the app**
